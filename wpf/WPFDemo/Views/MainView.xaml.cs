@@ -1,4 +1,5 @@
-﻿using MahApps.Metro.Controls;
+﻿using ControlzEx.Theming;
+using MahApps.Metro.Controls;
 using System.Windows;
 
 namespace WPFDemo.Views
@@ -10,7 +11,7 @@ namespace WPFDemo.Views
     {
         public MainView()
         {
-            InitializeComponent();
+            InitializeComponent();      
         }
     }
 }

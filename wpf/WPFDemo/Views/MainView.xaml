@@ -1,19 +1,131 @@
-﻿<mah:MetroWindow x:Class="WPFDemo.Views.MainView"
+﻿<mah:MetroWindow
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mah ="http://metro.mahapps.com/winfx/xaml/controls"
         xmlns:iconPacks ="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         xmlns:local="clr-namespace:WPFDemo.Views"
+        x:Class="WPFDemo.Views.MainView"
         mc:Ignorable="d"
-        Title="SmartFactory Monitoring System" Height="450" Width="800">
+        Title="SmartFactory Monitoring System" Height="900" Width="1810">
+    
+    <!--템플릿-->
     <mah:MetroWindow.IconTemplate>
         <DataTemplate>
             <iconPacks:PackIconUnicons Kind="Estate" Foreground="White" Margin="6,6,0,0"/>
         </DataTemplate>
     </mah:MetroWindow.IconTemplate>
+    
+    <!--바탕그리드-->
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="550"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <!--상단바-->
+        <Grid Grid.Row="0" Grid.Column="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="200"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Background="Orange">
+                <Label Content="DH Solutions" VerticalAlignment="Center" FontSize="15" Margin="10,0,5,5"
+                       FontWeight="Black"/>
+            </StackPanel>
+
+            <DockPanel Grid.Row="0" Grid.Column="1" Background="Orange"/>
+            <Rectangle Grid.Row="0" Grid.Column="1" Fill="White" Stroke="Orange" Width="300" Height="34" VerticalAlignment="Center"
+                     HorizontalAlignment="Center" RadiusX="30" RadiusY="30"/>
+            <Label Grid.Row="0" Grid.Column="1" Content="스마트공장 통합관리시스템" VerticalAlignment="Center"
+                    HorizontalAlignment="Center" FontSize="20" FontStyle="Normal" FontWeight="Black"/>
+
+            <Grid Grid.Row="0" Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="20"/>
+                </Grid.RowDefinitions>
+            </Grid>
+
+            <!--시간부분-->
+            <StackPanel Grid.Row="0" Grid.Column="2" Background="Orange" >
+                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                    <Label Content="Time : " FontSize="10" VerticalAlignment="Center"/>
+                    <Label x:Name="Time" VerticalAlignment="Center" FontSize="10" Margin="10"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                    <Label Content="ToDay : " FontSize="10" VerticalAlignment="Center"/>
+                    <Label x:Name="ToDay" VerticalAlignment="Center" FontSize="10" Margin="10"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
         
+        <!-- 웹캠 & 2번쨰줄영역-->
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="730"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Rectangle Grid.Row="0" Grid.Column="0" Fill="White" Stroke="Gray" Width="700" Height="500" VerticalAlignment="Center"
+                     HorizontalAlignment="Center" RadiusX="30" RadiusY="30" />
+            <Image Width="640" Height="480" Margin="30,10"/>
+            <Grid Grid.Row="0" Grid.Column="1">
+                
+                
+            <!--a.b.c 상자 완료부분-->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="170"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                
+            <!-- 상자 A부분(변수이름수정)-->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        
+                    </Grid.ColumnDefinitions>
+                </Grid>
+         
+        <Label  Grid.Row="0" Grid.Column="0" Content="A" 
+                HorizontalAlignment="Center" FontSize="20"/>
+                <lvc:Gauge Grid.Row="1" Grid.Column="0" Margin="5" 
+                   From="0" To="50" Height="150">
+                <lvc:Gauge.GaugeActiveFill>
+                   <LinearGradientBrush>
+                            <GradientStop Color="Yellow" Offset="0.0"/>
+                            <GradientStop Color="Orange" Offset="0.5"/>
+                            <GradientStop Color="Red" Offset="1.0"/>
+                   </LinearGradientBrush>
+            </lvc:Gauge.GaugeActiveFill>
+        </lvc:Gauge>
+
+
+                <Label  Grid.Row="0" Grid.Column="1" Content="B" 
+                        HorizontalAlignment="Center" FontSize="20"/>
+                <Label  Grid.Row="0" Grid.Column="2" Content="C" 
+                        HorizontalAlignment="Center" FontSize="20"/>
+
+
+            </Grid>
+            <!-- 웹캠-->
+            <Rectangle Grid.Row="0" Grid.Column="0" Fill="White" Stroke="Gray" Width="700" Height="500" VerticalAlignment="Center"
+                     HorizontalAlignment="Center" RadiusX="30" RadiusY="30" />
+            <Image Width="640" Height="480" Margin="30,10"/>
+
+            <!-- 상자 완료부분-->
+
+
+        </Grid>
+
     </Grid>
 </mah:MetroWindow>
