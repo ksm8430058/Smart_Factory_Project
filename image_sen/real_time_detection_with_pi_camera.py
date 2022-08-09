@@ -2,13 +2,8 @@
 #
 # Author: Kim Dong Hun
 # Date: 22/08/05
-# Description: 
+# Description:
 # TensorFlow Lite를 활용하여 picamera로 센싱된 물체를 판단하는 프로그램
-#
-# This code is based off the TensorFlow Lite image classification example at:
-# https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/examples/python/label_image.py
-#
-# I added my own method of drawing boxes and labels using OpenCV.
 
 # Import packages
 import os
@@ -17,8 +12,9 @@ import cv2
 import numpy as np
 import sys
 import time
-from threading import Thread
 import importlib.util
+import paho.mqtt.client as mqtt
+from threading import Thread
 from tflite_runtime.interpreter import Interpreter
 
 # Define VideoStream class to handle streaming of video from webcam in separate processing thread
@@ -30,7 +26,7 @@ class VideoStream:
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         ret = self.stream.set(3,resolution[0])
         ret = self.stream.set(4,resolution[1])
-            
+
         # Read first frame from the stream
         (self.grabbed, self.frame) = self.stream.read()
 
@@ -82,15 +78,13 @@ PATH_TO_LABELS = os.path.join(CWD_PATH, MODEL_NAME, LABELMAP_NAME)
 with open(PATH_TO_LABELS, 'r') as f:
     labels = [line.strip() for line in f.readlines()]
 
-## print(labels)
-
 # Have to do a weird fix for label map if using the COCO "starter model" from
 # https://www.tensorflow.org/lite/models/object_detection/overview
 # First label is '???', which has to be removed.
 if labels[0] == '???':
     del(labels[0])
 
-#Step1.tflite 확장자를 가진 모델을 메모리에 올림
+#tflite 확장자를 가진 모델을 메모리에 올림
 interpreter = Interpreter(model_path = PATH_TO_CKPT)
 interpreter.allocate_tensors()
 
@@ -101,24 +95,54 @@ height = input_details[0]['shape'][1]
 width = input_details[0]['shape'][2]
 
 
-# Initialize frame rate calculation
-frame_rate_calc = 1
-freq = cv2.getTickFrequency()
+
+#서버로부터 CONNTACK 응답을 받을 때 호출되는 콜백
+def on_connect(client, userdata, flags, rc):
+    print("Ready")
+    client.subscribe("/tes") #"/test"토픽 구독 7번줄
+
+def on_disconnect(client, userdata, flags, msg = 0) :
+    print("disconnect MQTT & Image_sensor Start")
+
+#서버로부터 publish message를 받을 때 호출되는 콜백
+#만약 받은 메시지가 'Image_sensor Start' 일 경우 전역변수인
+#before_flag값을 True로 변경하여 client.loop 프로세스를 탈출
+before_flag = False
+def on_message(client, userdata, msg):
+    recv_msg = msg.payload.decode('utf-8')
+
+    if recv_msg == 'Image_sensor Start' :
+        global before_flag
+        before_flag = True
 
 
-# Initialize video stream
-videostream = VideoStream(resolution=(imW, imH), framerate = 30).start()
-time.sleep(1)
-
-process_this_frame = True
-
-#for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 while True:
-    if not process_this_frame :
-        # Start timer (for calculating frame rate)
-        t1 = cv2.getTickCount()
+    client = mqtt.Client() #client 오브젝트 생성
 
-        # Grab frame from video stream
+    client.on_connect = on_connect #콜백설정
+    client.on_disconnect = on_disconnect #콜백설정
+    client.on_message = on_message #콜백설정
+
+    client.connect("210.119.12.71") #Broker이라는 브로커에 연결
+
+    #이미지 분석 시작 전 프로세스
+    #loop 함수를 통해 0.1초마다 MQTT 브로커로부터 들어온 데이터가 존재하는지 확인
+    while True :
+        client.loop(0.1)
+
+        if before_flag is True:
+            before_flag = False
+            client.disconnect()
+            break
+
+    object_name = ""
+
+    videostream = VideoStream(resolution=(imW, imH), framerate = 30).start()
+    time.sleep(1)
+
+    #이미지 분석 프로세스
+    while True:
+
         frame1 = videostream.read()
 
         # Acquire frame and resize to expected shape [1xHxWx3]
@@ -126,7 +150,7 @@ while True:
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (width, height))
         input_data = np.expand_dims(frame_resized, axis=0)
-        
+
         # Perform the actual detection by running the model with the image as input
         interpreter.set_tensor(input_details[0]['index'], input_data)
         interpreter.invoke()
@@ -134,49 +158,35 @@ while True:
         # Retrieve detection results
         boxes = interpreter.get_tensor(output_details[0]['index'])[0] # Bounding box coordinates of detected objects
         classes = interpreter.get_tensor(output_details[1]['index'])[0] # Class index of detected objects
-        scores = interpreter.get_tensor(output_details[2]['index'])[0] # Confidence of detected objects
+        scores_bef = interpreter.get_tensor(output_details[2]['index'])[0] # Confidence of detected objects
 
-        # Loop over all detections and draw detection box if confidence is above minimum threshold
-        for i in range(len(scores)):
-            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
+        # 가장 score가 높은 object 선별
+        scores_asc = np.sort(scores_bef)
+        scores = scores_asc[::-1]
 
-                # Get bounding box coordinates and draw box
-                # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-                ymin = int(max(1,(boxes[i][0] * imH)))
-                xmin = int(max(1,(boxes[i][1] * imW)))
-                ymax = int(min(imH,(boxes[i][2] * imH)))
-                xmax = int(min(imW,(boxes[i][3] * imW)))
-                
-                cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
+        if (min_conf_threshold < scores[0] <= 1.0):
 
-                # Draw label
-                object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
-                label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
-                
-                print(object_name)
-                
-                labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
-                label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
-                cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
-                cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+            # Look up object name from "labels" array using class index
+            object_name = labels[int(classes[0])] 
+            print(object_name)
 
-        # Draw framerate in corner of frame
-        cv2.putText(frame,'FPS: {0:.2f}'.format(frame_rate_calc),(30,30),cv2.FONT_HERSHEY_SIMPLEX,0.6,(255,255,0),2,cv2.LINE_AA)
+            if object_name == "teddy bear" or object_name == "bicycle" or object_name == "apple":
+                break
 
-        # All the results have been drawn on the frame, so it's time to display it.
-        cv2.imshow('Object detector', frame)
+        # Press 'q' to quit
+        if cv2.waitKey(1) == ord('q'):
+            break
 
-        # Calculate framerate
-        t2 = cv2.getTickCount()
-        time1 = (t2-t1)/freq
-        frame_rate_calc = 1/time1
-        
-    process_this_frame = not process_this_frame
 
-    # Press 'q' to quit
-    if cv2.waitKey(1) == ord('q'):
+    #이미지 분석 시작 후 프로세스
+    while True:
+        mqttc = mqtt.Client("python_pub")      # MQTT Client 오브젝트 생성
+        mqttc.connect("210.119.12.71", 1883)    # MQTT 서버에 연결
+        mqttc.publish("/Image_res", object_name)  # '/test' 토픽에 "Hello World!"라는 메시지 발행
+        print(object_name)
+        mqttc.disconnect()
         break
 
-# Clean up
-cv2.destroyAllWindows()
-videostream.stop()
+    # Clean up
+#    cv2.destroyAllWindows()
+    videostream.stop()
