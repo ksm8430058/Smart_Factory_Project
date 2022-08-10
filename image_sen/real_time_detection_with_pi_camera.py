@@ -4,6 +4,8 @@
 # Date: 22/08/05
 # Description:
 # TensorFlow Lite를 활용하여 picamera로 센싱된 물체를 판단하는 프로그램
+# 판단 가능 물체 :  teddy bear / bicycle / clock
+# 그외의 물체를 인식하거나 판단을 1초안에 하지 못할 경우 예외처리
 
 # Import packages
 import os
@@ -58,10 +60,11 @@ class VideoStream:
     # Indicate that the camera and thread should be stopped
         self.stopped = True
 
+# 학습된 tflite 파일 경로 설정 준비
 MODEL_NAME = "./Sample_model"
 GRAPH_NAME = 'detect.tflite'
 LABELMAP_NAME = 'labelmap.txt'
-min_conf_threshold = float(0.7)
+min_conf_threshold = flo/8t(0.7)
 #VGA 640x480 4:3
 imW, imH = int(640), int(480)
 
@@ -136,12 +139,21 @@ while True:
             break
 
     object_name = ""
+    run_time_flag = False
 
     videostream = VideoStream(resolution=(imW, imH), framerate = 30).start()
     time.sleep(1)
 
     #이미지 분석 프로세스
+    start_time = time.time()
     while True:
+        now_time = time.time()
+        uptime = now_time - start_time
+
+        if uptime > 30 : 
+            run_time_flag = True
+            object_name = "Error"
+            break
 
         frame1 = videostream.read()
 
@@ -170,23 +182,23 @@ while True:
             object_name = labels[int(classes[0])] 
             print(object_name)
 
-            if object_name == "teddy bear" or object_name == "bicycle" or object_name == "apple":
+            if object_name == "teddy bear" or object_name == "bicycle" or object_name == "clock":
                 break
-
+        
+        #cv2.imshow('Object detector', frame)
+        
         # Press 'q' to quit
         if cv2.waitKey(1) == ord('q'):
             break
 
 
     #이미지 분석 시작 후 프로세스
-    while True:
-        mqttc = mqtt.Client("python_pub")      # MQTT Client 오브젝트 생성
-        mqttc.connect("210.119.12.71", 1883)    # MQTT 서버에 연결
-        mqttc.publish("/Image_res", object_name)  # '/test' 토픽에 "Hello World!"라는 메시지 발행
-        print(object_name)
-        mqttc.disconnect()
-        break
+    mqttc = mqtt.Client("python_pub")      # MQTT Client 오브젝트 생성
+    mqttc.connect("210.119.12.71", 1883)    # MQTT 서버에 연결
+    mqttc.publish("/Image_res", object_name)  # '/test' 토픽에 "Hello World!"라는 메시지 발행
+    print(object_name)
+    mqttc.disconnect()
 
     # Clean up
-#    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
     videostream.stop()
