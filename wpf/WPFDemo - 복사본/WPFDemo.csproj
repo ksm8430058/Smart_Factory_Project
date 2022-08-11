@@ -187,7 +187,6 @@
     </ApplicationDefinition>
     <Compile Include="Helper\Commons.cs" />
     <Compile Include="ViewModels\CustomerPoppViewModel.cs" />
-    <Compile Include="ViewModels\DataBaseViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\CustomPopupView.xaml.cs">
       <DependentUpon>CustomPopupView.xaml</DependentUpon>

@@ -15,7 +15,8 @@ namespace WPFDemo.ViewModels
         public MainViewModel()
         {
             DisplayName = "SmartHome Monitoring v2.0";  //title 설정
-            BrokerUrl = Commons.BROKERHOST = "127.0.0.1";   //MQTT Broker IP 설정
+
+            BrokerUrl = Commons.BROKERHOST = "210.119.12.70";   //MQTT Broker IP 설정
 
             ConnString = Commons.CONNSTRING = "Data Source=PC01\\SQLEXPRESS;Initial Catalog=OpenApiLab;Integrated Security=True";
 
